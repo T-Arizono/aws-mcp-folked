@@ -44,16 +44,16 @@ class AwsHelper:
     def get_aws_region() -> str:
         """Get the AWS region from the environment if set."""
         aws_region = os.environ.get(
-            'AWS_REGION',
+            "AWS_REGION",
         )
         if not aws_region:
-            return 'us-east-1'
+            return "us-east-1"
         return aws_region
 
     @staticmethod
     def get_aws_profile() -> Optional[str]:
         """Get the AWS profile from the environment if set."""
-        return os.environ.get('AWS_PROFILE')
+        return os.environ.get("AWS_PROFILE")
 
     @staticmethod
     def is_custom_tags_enabled() -> bool:
@@ -65,8 +65,8 @@ class AwsHelper:
         Returns:
             True if custom tags are enabled, False otherwise
         """
-        custom_tags = os.environ.get(CUSTOM_TAGS_ENV_VAR, '').lower()
-        return custom_tags == 'true'
+        custom_tags = os.environ.get(CUSTOM_TAGS_ENV_VAR, "").lower()
+        return custom_tags == "true"
 
     # Class variables to cache AWS information
     _aws_account_id = None
@@ -86,13 +86,13 @@ class AwsHelper:
             return cls._aws_account_id
 
         try:
-            sts_client = boto3.client('sts')
-            cls._aws_account_id = sts_client.get_caller_identity()['Account']
+            sts_client = boto3.client("sts")
+            cls._aws_account_id = sts_client.get_caller_identity()["Account"]
             return cls._aws_account_id
         except Exception:
             # If we can't get the account ID, return a placeholder
             # This is better than nothing for ARN construction
-            return 'current-account'
+            return "current-account"
 
     @classmethod
     def get_aws_partition(cls) -> str:
@@ -109,19 +109,21 @@ class AwsHelper:
             return cls._aws_partition
 
         try:
-            sts_client = boto3.client('sts')
+            sts_client = boto3.client("sts")
             # Extract partition from the ARN in the response
-            arn = sts_client.get_caller_identity()['Arn']
+            arn = sts_client.get_caller_identity()["Arn"]
             # ARN format: arn:partition:service:region:account-id:resource
-            cls._aws_partition = arn.split(':')[1]
+            cls._aws_partition = arn.split(":")[1]
             return cls._aws_partition
         except Exception:
             # If we can't get the partition, return the standard partition
             # This is better than nothing for ARN construction
-            return 'aws'
+            return "aws"
 
     @classmethod
-    def create_boto3_client(cls, service_name: str, region_name: Optional[str] = None) -> Any:
+    def create_boto3_client(
+        cls, service_name: str, region_name: Optional[str] = None
+    ) -> Any:
         """Create a boto3 client with the appropriate profile and region.
 
         The client is configured with a custom user agent suffix 'awslabs/mcp/aws-dataprocessing-mcp-server/0.1.0'
@@ -135,14 +137,16 @@ class AwsHelper:
             A boto3 client for the specified service
         """
         # Get region from parameter or environment if set
-        region: Optional[str] = region_name if region_name is not None else cls.get_aws_region()
+        region: Optional[str] = (
+            region_name if region_name is not None else cls.get_aws_region()
+        )
 
         # Get profile from environment if set
         profile = cls.get_aws_profile()
 
         # Create config with user agent suffix
         config = Config(
-            user_agent_extra=f'awslabs/mcp/aws-dataprocessing-mcp-server/{__version__}'
+            user_agent_extra=f"awslabs/mcp/aws-dataprocessing-mcp-server/{__version__}"
         )
 
         # Create session with profile if specified
@@ -187,7 +191,7 @@ class AwsHelper:
 
     @staticmethod
     def convert_tags_to_aws_format(
-        tags: Dict[str, str], format_type: str = 'key_value'
+        tags: Dict[str, str], format_type: str = "key_value"
     ) -> List[Dict[str, str]]:
         """Convert tags dictionary to AWS API format.
 
@@ -198,10 +202,10 @@ class AwsHelper:
         Returns:
             List of tag dictionaries in AWS API format
         """
-        if format_type == 'tag_key_value':
-            return [{'TagKey': key, 'TagValue': value} for key, value in tags.items()]
+        if format_type == "tag_key_value":
+            return [{"TagKey": key, "TagValue": value} for key, value in tags.items()]
         else:
-            return [{'Key': key, 'Value': value} for key, value in tags.items()]
+            return [{"Key": key, "Value": value} for key, value in tags.items()]
 
     @staticmethod
     def get_resource_tags_athena_workgroup(
@@ -218,15 +222,15 @@ class AwsHelper:
         """
         try:
             response = athena_client.list_tags_for_resource(
-                ResourceARN=f'arn:aws:athena:{AwsHelper.get_aws_region()}:{AwsHelper.get_aws_account_id()}:workgroup/{workgroup_name}'
+                ResourceARN=f"arn:aws:athena:{AwsHelper.get_aws_region()}:{AwsHelper.get_aws_account_id()}:workgroup/{workgroup_name}"
             )
-            return response.get('Tags', [])
+            return response.get("Tags", [])
         except ClientError:
             return []
 
     @staticmethod
     def verify_resource_managed_by_mcp(
-        tags: List[Dict[str, str]], tag_format: str = 'key_value'
+        tags: List[Dict[str, str]], tag_format: str = "key_value"
     ) -> bool:
         """Verify if a resource is managed by the MCP server based on its tags.
 
@@ -246,10 +250,10 @@ class AwsHelper:
 
         # Convert tags to dictionary for easier lookup
         tag_dict = {}
-        if tag_format == 'tag_key_value':
-            tag_dict = {tag.get('TagKey', ''): tag.get('TagValue', '') for tag in tags}
+        if tag_format == "tag_key_value":
+            tag_dict = {tag.get("TagKey", ""): tag.get("TagValue", "") for tag in tags}
         else:
-            tag_dict = {tag.get('Key', ''): tag.get('Value', '') for tag in tags}
+            tag_dict = {tag.get("Key", ""): tag.get("Value", "") for tag in tags}
 
         return tag_dict.get(MCP_MANAGED_TAG_KEY) == MCP_MANAGED_TAG_VALUE
 
@@ -265,8 +269,10 @@ class AwsHelper:
             Dictionary of tags
         """
         try:
-            response = glue_client.get_tags(ResourceArn=f'arn:aws:glue:*:*:job/{job_name}')
-            return response.get('Tags', {})
+            response = glue_client.get_tags(
+                ResourceArn=f"arn:aws:glue:*:*:job/{job_name}"
+            )
+            return response.get("Tags", {})
         except ClientError:
             return {}
 
@@ -294,7 +300,7 @@ class AwsHelper:
         # First try to check tags
         try:
             tags_response = glue_client.get_tags(ResourceArn=resource_arn)
-            tags = tags_response.get('Tags', {})
+            tags = tags_response.get("Tags", {})
 
             # Check if the resource is managed by MCP using tags
             if tags.get(MCP_MANAGED_TAG_KEY) == MCP_MANAGED_TAG_VALUE:
@@ -311,7 +317,9 @@ class AwsHelper:
 
     @staticmethod
     def verify_emr_cluster_managed_by_mcp(
-        emr_client: Any, cluster_id: str, expected_resource_type: str = EMR_CLUSTER_RESOURCE_TYPE
+        emr_client: Any,
+        cluster_id: str,
+        expected_resource_type: str = EMR_CLUSTER_RESOURCE_TYPE,
     ) -> Dict[str, Any]:
         """Verify if an EMR cluster is managed by the MCP server and has the expected resource type.
 
@@ -329,39 +337,42 @@ class AwsHelper:
         """
         # If custom tags are enabled, skip verification
         if AwsHelper.is_custom_tags_enabled():
-            return {'is_valid': True, 'error_message': None}
+            return {"is_valid": True, "error_message": None}
 
-        result = {'is_valid': False, 'error_message': None}
+        result = {"is_valid": False, "error_message": None}
 
         try:
             response = emr_client.describe_cluster(ClusterId=cluster_id)
-            tags_list = response.get('Cluster', {}).get('Tags', [])
+            tags_list = response.get("Cluster", {}).get("Tags", [])
 
             # Check if the resource is managed by MCP
             if not AwsHelper.verify_resource_managed_by_mcp(tags_list):
-                result['error_message'] = (
-                    f'Cluster {cluster_id} is not managed by MCP (missing required tags)'
+                result["error_message"] = (
+                    f"Cluster {cluster_id} is not managed by MCP (missing required tags)"
                 )
                 return result
 
             # Convert tags to dictionary for easier lookup
-            tag_dict = {tag.get('Key', ''): tag.get('Value', '') for tag in tags_list}
+            tag_dict = {tag.get("Key", ""): tag.get("Value", "") for tag in tags_list}
 
             # Check if the resource has the expected resource type
-            actual_type = tag_dict.get(MCP_RESOURCE_TYPE_TAG_KEY, 'unknown')
-            if actual_type != expected_resource_type and actual_type != EMR_CLUSTER_RESOURCE_TYPE:
-                result['error_message'] = (
-                    f'Cluster {cluster_id} has incorrect type (expected {expected_resource_type}, got {actual_type})'
+            actual_type = tag_dict.get(MCP_RESOURCE_TYPE_TAG_KEY, "unknown")
+            if (
+                actual_type != expected_resource_type
+                and actual_type != EMR_CLUSTER_RESOURCE_TYPE
+            ):
+                result["error_message"] = (
+                    f"Cluster {cluster_id} has incorrect type (expected {expected_resource_type}, got {actual_type})"
                 )
                 return result
 
             # All checks passed
-            result['is_valid'] = True
+            result["is_valid"] = True
             return result
 
         except ClientError as e:
             # If we can't get the cluster information, return error
-            result['error_message'] = f'Error retrieving cluster {cluster_id}: {str(e)}'
+            result["error_message"] = f"Error retrieving cluster {cluster_id}: {str(e)}"
             return result
 
     @classmethod
@@ -384,47 +395,47 @@ class AwsHelper:
         """
         # If custom tags are enabled, skip verification
         if cls.is_custom_tags_enabled():
-            return {'is_valid': True, 'error_message': None}
+            return {"is_valid": True, "error_message": None}
 
-        result = {'is_valid': False, 'error_message': None}
+        result = {"is_valid": False, "error_message": None}
 
         try:
             # Get data catalog to confirm it exists
-            get_params = {'Name': name}
+            get_params = {"Name": name}
             if work_group is not None:
-                get_params['WorkGroup'] = work_group
+                get_params["WorkGroup"] = work_group
 
             athena_client.get_data_catalog(**get_params)
 
             # Construct the ARN for the data catalog
             account_id = cls.get_aws_account_id()
             region = cls.get_aws_region()
-            data_catalog_arn = (
-                f'arn:{cls.get_aws_partition()}:athena:{region}:{account_id}:datacatalog/{name}'
-            )
+            data_catalog_arn = f"arn:{cls.get_aws_partition()}:athena:{region}:{account_id}:datacatalog/{name}"
 
             # Get tags for the data catalog
             try:
-                tags_response = athena_client.list_tags_for_resource(ResourceARN=data_catalog_arn)
-                tags = tags_response.get('Tags', [])
+                tags_response = athena_client.list_tags_for_resource(
+                    ResourceARN=data_catalog_arn
+                )
+                tags = tags_response.get("Tags", [])
 
                 # Check if the data catalog is managed by MCP
                 if not cls.verify_resource_managed_by_mcp(tags):
-                    result['error_message'] = (
-                        f'Data catalog {name} is not managed by MCP (missing required tags)'
+                    result["error_message"] = (
+                        f"Data catalog {name} is not managed by MCP (missing required tags)"
                     )
                     return result
 
                 # All checks passed
-                result['is_valid'] = True
+                result["is_valid"] = True
                 return result
 
             except Exception as e:
-                result['error_message'] = f'Error checking data catalog tags: {str(e)}'
+                result["error_message"] = f"Error checking data catalog tags: {str(e)}"
                 return result
 
         except Exception as e:
-            result['error_message'] = f'Error getting data catalog: {str(e)}'
+            result["error_message"] = f"Error getting data catalog: {str(e)}"
             return result
 
     @classmethod
@@ -450,40 +461,76 @@ class AwsHelper:
         """
         # If custom tags are enabled, skip verification
         if cls.is_custom_tags_enabled():
-            return {'is_valid': True, 'error_message': None}
+            return {"is_valid": True, "error_message": None}
 
-        result = {'is_valid': False, 'error_message': None}
+        result = {"is_valid": False, "error_message": None}
 
         try:
-            response = emr_serverless_client.get_application(applicationId=application_id)
-            tags_dict = response.get('application', {}).get('tags', {})
+            response = emr_serverless_client.get_application(
+                applicationId=application_id
+            )
+            tags_dict = response.get("application", {}).get("tags", {})
 
             # Convert tags dictionary to list format for verification
-            tags_list = [{'Key': key, 'Value': value} for key, value in tags_dict.items()]
+            tags_list = [
+                {"Key": key, "Value": value} for key, value in tags_dict.items()
+            ]
 
             # Check if the resource is managed by MCP
             if not cls.verify_resource_managed_by_mcp(tags_list):
-                result['error_message'] = (
-                    f'Application {application_id} is not managed by MCP (missing required tags)'
+                result["error_message"] = (
+                    f"Application {application_id} is not managed by MCP (missing required tags)"
                 )
                 return result
 
             # Check if the resource has the expected resource type
-            actual_type = tags_dict.get(MCP_RESOURCE_TYPE_TAG_KEY, 'unknown')
+            actual_type = tags_dict.get(MCP_RESOURCE_TYPE_TAG_KEY, "unknown")
             if (
                 actual_type != expected_resource_type
                 and actual_type != EMR_SERVERLESS_APPLICATION_RESOURCE_TYPE
             ):
-                result['error_message'] = (
-                    f'Application {application_id} has incorrect type (expected {expected_resource_type}, got {actual_type})'
+                result["error_message"] = (
+                    f"Application {application_id} has incorrect type (expected {expected_resource_type}, got {actual_type})"
                 )
                 return result
 
             # All checks passed
-            result['is_valid'] = True
+            result["is_valid"] = True
             return result
 
         except ClientError as e:
             # If we can't get the application information, return error
-            result['error_message'] = f'Error retrieving application {application_id}: {str(e)}'
+            result["error_message"] = (
+                f"Error retrieving application {application_id}: {str(e)}"
+            )
             return result
+
+    @staticmethod
+    def serialize_boto3_response(obj: Any) -> Any:
+        """Serialize boto3 response objects to JSON-serializable format.
+
+        Converts datetime objects to ISO format strings and Decimal objects to floats.
+        Recursively processes dictionaries and lists.
+
+        Args:
+            obj: Object to serialize (can be dict, list, datetime, Decimal, or other types)
+
+        Returns:
+            JSON-serializable object
+        """
+        from datetime import datetime, date
+        from decimal import Decimal
+
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        elif isinstance(obj, Decimal):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {
+                key: AwsHelper.serialize_boto3_response(value)
+                for key, value in obj.items()
+            }
+        elif isinstance(obj, list):
+            return [AwsHelper.serialize_boto3_response(item) for item in obj]
+        else:
+            return obj

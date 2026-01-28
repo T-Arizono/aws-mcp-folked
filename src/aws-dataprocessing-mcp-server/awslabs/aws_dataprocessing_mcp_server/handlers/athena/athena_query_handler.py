@@ -45,7 +45,9 @@ from typing import Annotated, Any, Dict, List, Optional
 class AthenaQueryHandler:
     """Handler for Amazon Athena Query operations."""
 
-    def __init__(self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False):
+    def __init__(
+        self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False
+    ):
         """Initialize the Athena Query handler.
 
         Args:
@@ -56,11 +58,15 @@ class AthenaQueryHandler:
         self.mcp = mcp
         self.allow_write = allow_write
         self.allow_sensitive_data_access = allow_sensitive_data_access
-        self.athena_client = AwsHelper.create_boto3_client('athena')
+        self.athena_client = AwsHelper.create_boto3_client("athena")
 
         # Register tools
-        self.mcp.tool(name='manage_aws_athena_query_executions')(self.manage_aws_athena_queries)
-        self.mcp.tool(name='manage_aws_athena_named_queries')(self.manage_aws_athena_named_queries)
+        self.mcp.tool(name="manage_aws_athena_query_executions")(
+            self.manage_aws_athena_queries
+        )
+        self.mcp.tool(name="manage_aws_athena_named_queries")(
+            self.manage_aws_athena_named_queries
+        )
 
     async def manage_aws_athena_queries(
         self,
@@ -68,79 +74,79 @@ class AthenaQueryHandler:
         operation: Annotated[
             str,
             Field(
-                description='Operation to perform: batch-get-query-execution, get-query-execution, get-query-results, get-query-runtime-statistics, list-query-executions, start-query-execution, stop-query-execution. Choose read-only operations when write access is disabled.',
+                description="Operation to perform: batch-get-query-execution, get-query-execution, get-query-results, get-query-runtime-statistics, list-query-executions, start-query-execution, stop-query-execution. Choose read-only operations when write access is disabled.",
             ),
         ],
         query_execution_id: Annotated[
             Optional[str],
             Field(
-                description='ID of the query execution (required for get-query-execution, get-query-results, get-query-runtime-statistics, stop-query-execution).',
+                description="ID of the query execution (required for get-query-execution, get-query-results, get-query-runtime-statistics, stop-query-execution).",
             ),
         ] = None,
         query_execution_ids: Annotated[
             Optional[List[str]],
             Field(
-                description='List of query execution IDs (required for batch-get-query-execution, max 50 IDs).',
+                description="List of query execution IDs (required for batch-get-query-execution, max 50 IDs).",
             ),
         ] = None,
         query_string: Annotated[
             Optional[str],
             Field(
-                description='The SQL query string to execute (required for start-query-execution).',
+                description="The SQL query string to execute (required for start-query-execution).",
             ),
         ] = None,
         client_request_token: Annotated[
             Optional[str],
             Field(
-                description='A unique case-sensitive string used to ensure the request to create the query is idempotent (optional for start-query-execution).',
+                description="A unique case-sensitive string used to ensure the request to create the query is idempotent (optional for start-query-execution).",
             ),
         ] = None,
         query_execution_context: Annotated[
             Optional[Dict[str, str]],
             Field(
-                description='Context for the query execution, such as database name and catalog (optional for start-query-execution).',
+                description="Context for the query execution, such as database name and catalog (optional for start-query-execution).",
             ),
         ] = None,
         result_configuration: Annotated[
             Optional[Dict[str, Any]],
             Field(
-                description='Configuration for query results, such as output location and encryption (optional for start-query-execution).',
+                description="Configuration for query results, such as output location and encryption (optional for start-query-execution).",
             ),
         ] = None,
         work_group: Annotated[
             Optional[str],
             Field(
-                description='The name of the workgroup in which the query is being started (optional for start-query-execution, list-query-executions).',
+                description="The name of the workgroup in which the query is being started (optional for start-query-execution, list-query-executions).",
             ),
         ] = None,
         execution_parameters: Annotated[
             Optional[List[str]],
             Field(
-                description='Execution parameters for parameterized queries (optional for start-query-execution).',
+                description="Execution parameters for parameterized queries (optional for start-query-execution).",
             ),
         ] = None,
         result_reuse_configuration: Annotated[
             Optional[Dict[str, Any]],
             Field(
-                description='Specifies the query result reuse behavior for the query (optional for start-query-execution).',
+                description="Specifies the query result reuse behavior for the query (optional for start-query-execution).",
             ),
         ] = None,
         max_results: Annotated[
             Optional[int],
             Field(
-                description='Maximum number of results to return (1-1000 for get-query-results, 0-50 for list-query-executions).',
+                description="Maximum number of results to return (1-1000 for get-query-results, 0-50 for list-query-executions).",
             ),
         ] = None,
         next_token: Annotated[
             Optional[str],
             Field(
-                description='Pagination token for get-query-results and list-query-executions operations.',
+                description="Pagination token for get-query-results and list-query-executions operations.",
             ),
         ] = None,
         query_result_type: Annotated[
             Optional[str],
             Field(
-                description='Type of query results to return: DATA_ROWS (default) or DATA_MANIFEST (optional for get-query-results).',
+                description="Type of query results to return: DATA_ROWS (default) or DATA_MANIFEST (optional for get-query-results).",
             ),
         ] = None,
     ) -> CallToolResult:
@@ -202,69 +208,73 @@ class AthenaQueryHandler:
             log_with_request_id(
                 ctx,
                 LogLevel.INFO,
-                f'Athena Query Handler - Tool: manage_aws_athena_queries - Operation: {operation}',
+                f"Athena Query Handler - Tool: manage_aws_athena_queries - Operation: {operation}",
             )
 
-            if operation == 'start-query-execution':
+            if operation == "start-query-execution":
                 if query_string is None:
                     raise ValueError(
-                        'query_string is required for start-query-execution operation'
+                        "query_string is required for start-query-execution operation"
                     )
 
                 # Check for write operations when write access is disabled
-                if not self.allow_write and SqlAnalyzer.contains_write_operations(query_string):
+                if not self.allow_write and SqlAnalyzer.contains_write_operations(
+                    query_string
+                ):
                     error_message = (
-                        f'Operation {operation} contains write operations and is not allowed without write access. '
-                        f'Detected query type: {SqlAnalyzer.get_query_type(query_string)}'
+                        f"Operation {operation} contains write operations and is not allowed without write access. "
+                        f"Detected query type: {SqlAnalyzer.get_query_type(query_string)}"
                     )
                     log_with_request_id(ctx, LogLevel.ERROR, error_message)
 
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=error_message)],
+                        content=[TextContent(type="text", text=error_message)],
                     )
 
                 # Prepare parameters
-                params = {'QueryString': query_string}
+                params = {"QueryString": query_string}
 
                 if client_request_token is not None:
-                    params['ClientRequestToken'] = client_request_token
+                    params["ClientRequestToken"] = client_request_token
 
                 if query_execution_context is not None:
-                    params['QueryExecutionContext'] = query_execution_context
+                    params["QueryExecutionContext"] = query_execution_context
 
                 if result_configuration is not None:
-                    params['ResultConfiguration'] = result_configuration
+                    params["ResultConfiguration"] = result_configuration
 
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 if execution_parameters is not None:
-                    params['ExecutionParameters'] = execution_parameters
+                    params["ExecutionParameters"] = execution_parameters
 
                 if result_reuse_configuration is not None:
-                    params['ResultReuseConfiguration'] = result_reuse_configuration
+                    params["ResultReuseConfiguration"] = result_reuse_configuration
 
                 # Start query execution
                 response = self.athena_client.start_query_execution(**params)
 
                 data = StartQueryExecutionData(
-                    query_execution_id=response.get('QueryExecutionId', ''),
-                    operation='start-query-execution',
+                    query_execution_id=response.get("QueryExecutionId", ""),
+                    operation="start-query-execution",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text='Successfully started query execution'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(
+                            type="text", text="Successfully started query execution"
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'batch-get-query-execution':
+            elif operation == "batch-get-query-execution":
                 if query_execution_ids is None:
                     raise ValueError(
-                        'query_execution_ids is required for batch-get-query-execution operation'
+                        "query_execution_ids is required for batch-get-query-execution operation"
                     )
 
                 # Get batch query executions
@@ -272,27 +282,29 @@ class AthenaQueryHandler:
                     QueryExecutionIds=query_execution_ids
                 )
 
-                query_executions = response.get('QueryExecutions', [])
-                unprocessed_ids = response.get('UnprocessedQueryExecutionIds', [])
+                query_executions = response.get("QueryExecutions", [])
+                unprocessed_ids = response.get("UnprocessedQueryExecutionIds", [])
 
                 data = BatchGetQueryExecutionData(
                     query_executions=query_executions,
                     unprocessed_query_execution_ids=unprocessed_ids,
-                    operation='batch-get-query-execution',
+                    operation="batch-get-query-execution",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text='Successfully retrieved query executions'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(
+                            type="text", text="Successfully retrieved query executions"
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'get-query-execution':
+            elif operation == "get-query-execution":
                 if query_execution_id is None:
                     raise ValueError(
-                        'query_execution_id is required for get-query-execution operation'
+                        "query_execution_id is required for get-query-execution operation"
                     )
 
                 # Get query execution
@@ -300,64 +312,69 @@ class AthenaQueryHandler:
                     QueryExecutionId=query_execution_id
                 )
 
+                # Serialize boto3 response to handle datetime/Decimal types
+                query_execution = AwsHelper.serialize_boto3_response(
+                    response.get("QueryExecution", {})
+                )
+
                 data = GetQueryExecutionData(
                     query_execution_id=query_execution_id,
-                    query_execution=response.get('QueryExecution', {}),
-                    operation='get-query-execution',
+                    query_execution=query_execution,
+                    operation="get-query-execution",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text',
-                            text=f'Successfully retrieved query execution {query_execution_id}',
+                            type="text",
+                            text=f"Successfully retrieved query execution {query_execution_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'get-query-results':
+            elif operation == "get-query-results":
                 if query_execution_id is None:
                     raise ValueError(
-                        'query_execution_id is required for get-query-results operation'
+                        "query_execution_id is required for get-query-results operation"
                     )
 
                 # Prepare parameters
-                params: Dict[str, Any] = {'QueryExecutionId': query_execution_id}
+                params: Dict[str, Any] = {"QueryExecutionId": query_execution_id}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if query_result_type is not None:
-                    params['QueryResultType'] = query_result_type
+                    params["QueryResultType"] = query_result_type
 
                 # Get query results
                 response = self.athena_client.get_query_results(**params)
 
                 data = GetQueryResultsData(
                     query_execution_id=query_execution_id,
-                    result_set=response.get('ResultSet', {}),
-                    next_token=response.get('NextToken'),
-                    update_count=response.get('UpdateCount'),
-                    operation='get-query-results',
+                    result_set=response.get("ResultSet", {}),
+                    next_token=response.get("NextToken"),
+                    update_count=response.get("UpdateCount"),
+                    operation="get-query-results",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text',
-                            text=f'Successfully retrieved query results for {query_execution_id}',
+                            type="text",
+                            text=f"Successfully retrieved query results for {query_execution_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'get-query-runtime-statistics':
+            elif operation == "get-query-runtime-statistics":
                 if query_execution_id is None:
                     raise ValueError(
-                        'query_execution_id is required for get-query-runtime-statistics operation'
+                        "query_execution_id is required for get-query-runtime-statistics operation"
                     )
 
                 # Get query runtime statistics
@@ -367,92 +384,100 @@ class AthenaQueryHandler:
 
                 data = GetQueryRuntimeStatisticsData(
                     query_execution_id=query_execution_id,
-                    statistics=response.get('QueryRuntimeStatistics', {}),
-                    operation='get-query-runtime-statistics',
+                    statistics=response.get("QueryRuntimeStatistics", {}),
+                    operation="get-query-runtime-statistics",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text',
-                            text=f'Successfully retrieved query runtime statistics for {query_execution_id}',
+                            type="text",
+                            text=f"Successfully retrieved query runtime statistics for {query_execution_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-query-executions':
+            elif operation == "list-query-executions":
                 # Prepare parameters
                 params: Dict[str, Any] = {}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # List query executions
                 response = self.athena_client.list_query_executions(**params)
 
-                query_execution_ids_res: List[str] = response.get('QueryExecutionIds', [])
+                query_execution_ids_res: List[str] = response.get(
+                    "QueryExecutionIds", []
+                )
                 data = ListQueryExecutionsData(
                     query_execution_ids=query_execution_ids_res,
                     count=len(query_execution_ids_res),
-                    next_token=response.get('NextToken'),
-                    operation='list-query-executions',
-                )
-
-                return CallToolResult(
-                    isError=False,
-                    content=[
-                        TextContent(type='text', text='Successfully listed query executions'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
-                    ],
-                )
-
-            elif operation == 'stop-query-execution':
-                if query_execution_id is None:
-                    raise ValueError(
-                        'query_execution_id is required for stop-query-execution operation'
-                    )
-
-                # Stop query execution
-                self.athena_client.stop_query_execution(QueryExecutionId=query_execution_id)
-
-                data = StopQueryExecutionData(
-                    query_execution_id=query_execution_id,
-                    operation='stop-query-execution',
+                    next_token=response.get("NextToken"),
+                    operation="list-query-executions",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text',
-                            text=f'Successfully stopped query execution {query_execution_id}',
+                            type="text", text="Successfully listed query executions"
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
+                    ],
+                )
+
+            elif operation == "stop-query-execution":
+                if query_execution_id is None:
+                    raise ValueError(
+                        "query_execution_id is required for stop-query-execution operation"
+                    )
+
+                # Stop query execution
+                self.athena_client.stop_query_execution(
+                    QueryExecutionId=query_execution_id
+                )
+
+                data = StopQueryExecutionData(
+                    query_execution_id=query_execution_id,
+                    operation="stop-query-execution",
+                )
+
+                return CallToolResult(
+                    isError=False,
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=f"Successfully stopped query execution {query_execution_id}",
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
             else:
-                error_message = f'Invalid operation: {operation}. Must be one of: batch-get-query-execution, get-query-execution, get-query-results, get-query-runtime-statistics, list-query-executions, start-query-execution, stop-query-execution'
+                error_message = f"Invalid operation: {operation}. Must be one of: batch-get-query-execution, get-query-execution, get-query-results, get-query-runtime-statistics, list-query-executions, start-query-execution, stop-query-execution"
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
         except ValueError as e:
-            log_with_request_id(ctx, LogLevel.ERROR, f'Parameter validation error: {str(e)}')
+            log_with_request_id(
+                ctx, LogLevel.ERROR, f"Parameter validation error: {str(e)}"
+            )
             raise
         except Exception as e:
-            error_message = f'Error in manage_aws_athena_queries: {str(e)}'
+            error_message = f"Error in manage_aws_athena_queries: {str(e)}"
             log_with_request_id(ctx, LogLevel.ERROR, error_message)
             return CallToolResult(
                 isError=True,
-                content=[TextContent(type='text', text=error_message)],
+                content=[TextContent(type="text", text=error_message)],
             )
 
     async def manage_aws_athena_named_queries(
@@ -461,67 +486,67 @@ class AthenaQueryHandler:
         operation: Annotated[
             str,
             Field(
-                description='Operation to perform: batch-get-named-query, create-named-query, delete-named-query, get-named-query, list-named-queries, update-named-query. Choose read-only operations when write access is disabled.',
+                description="Operation to perform: batch-get-named-query, create-named-query, delete-named-query, get-named-query, list-named-queries, update-named-query. Choose read-only operations when write access is disabled.",
             ),
         ],
         named_query_id: Annotated[
             Optional[str],
             Field(
-                description='ID of the named query (required for get-named-query, delete-named-query, update-named-query).',
+                description="ID of the named query (required for get-named-query, delete-named-query, update-named-query).",
             ),
         ] = None,
         named_query_ids: Annotated[
             Optional[List[str]],
             Field(
-                description='List of named query IDs (required for batch-get-named-query, max 50 IDs).',
+                description="List of named query IDs (required for batch-get-named-query, max 50 IDs).",
             ),
         ] = None,
         name: Annotated[
             Optional[str],
             Field(
-                description='Name of the named query (required for create-named-query and update-named-query).',
+                description="Name of the named query (required for create-named-query and update-named-query).",
             ),
         ] = None,
         description: Annotated[
             Optional[str],
             Field(
-                description='Description of the named query (optional for create-named-query and update-named-query, max 1024 chars).',
+                description="Description of the named query (optional for create-named-query and update-named-query, max 1024 chars).",
             ),
         ] = None,
         database: Annotated[
             Optional[str],
             Field(
-                description='Database context for the named query (required for create-named-query, optional for update-named-query).',
+                description="Database context for the named query (required for create-named-query, optional for update-named-query).",
             ),
         ] = None,
         query_string: Annotated[
             Optional[str],
             Field(
-                description='The SQL query string (required for create-named-query and update-named-query).',
+                description="The SQL query string (required for create-named-query and update-named-query).",
             ),
         ] = None,
         client_request_token: Annotated[
             Optional[str],
             Field(
-                description='A unique case-sensitive string used to ensure the request to create the query is idempotent (optional for create-named-query).',
+                description="A unique case-sensitive string used to ensure the request to create the query is idempotent (optional for create-named-query).",
             ),
         ] = None,
         work_group: Annotated[
             Optional[str],
             Field(
-                description='The name of the workgroup (optional for create-named-query and list-named-queries).',
+                description="The name of the workgroup (optional for create-named-query and list-named-queries).",
             ),
         ] = None,
         max_results: Annotated[
             Optional[int],
             Field(
-                description='Maximum number of results to return for list-named-queries operation.',
+                description="Maximum number of results to return for list-named-queries operation.",
             ),
         ] = None,
         next_token: Annotated[
             Optional[str],
             Field(
-                description='Pagination token for list-named-queries operation.',
+                description="Pagination token for list-named-queries operation.",
             ),
         ] = None,
     ) -> CallToolResult:
@@ -582,212 +607,234 @@ class AthenaQueryHandler:
             log_with_request_id(
                 ctx,
                 LogLevel.INFO,
-                f'Athena Query Handler - Tool: manage_aws_athena_named_queries - Operation: {operation}',
+                f"Athena Query Handler - Tool: manage_aws_athena_named_queries - Operation: {operation}",
             )
 
             if not self.allow_write and operation in [
-                'create-named-query',
-                'delete-named-query',
-                'update-named-query',
+                "create-named-query",
+                "delete-named-query",
+                "update-named-query",
             ]:
-                error_message = f'Operation {operation} is not allowed without write access'
+                error_message = (
+                    f"Operation {operation} is not allowed without write access"
+                )
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
 
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
-            if operation == 'batch-get-named-query':
+            if operation == "batch-get-named-query":
                 if named_query_ids is None:
                     raise ValueError(
-                        'named_query_ids is required for batch-get-named-query operation'
+                        "named_query_ids is required for batch-get-named-query operation"
                     )
 
                 # Get batch named queries
-                response = self.athena_client.batch_get_named_query(NamedQueryIds=named_query_ids)
+                response = self.athena_client.batch_get_named_query(
+                    NamedQueryIds=named_query_ids
+                )
 
-                named_queries = response.get('NamedQueries', [])
-                unprocessed_ids = response.get('UnprocessedNamedQueryIds', [])
+                named_queries = response.get("NamedQueries", [])
+                unprocessed_ids = response.get("UnprocessedNamedQueryIds", [])
                 data = BatchGetNamedQueryData(
                     named_queries=named_queries,
                     unprocessed_named_query_ids=unprocessed_ids,
-                    operation='batch-get-named-query',
+                    operation="batch-get-named-query",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text='Successfully retrieved named queries'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(
+                            type="text", text="Successfully retrieved named queries"
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'create-named-query':
+            elif operation == "create-named-query":
                 if name is None or query_string is None or database is None:
                     raise ValueError(
-                        'name, query_string, and database are required for create-named-query operation'
+                        "name, query_string, and database are required for create-named-query operation"
                     )
 
                 # Prepare parameters
                 params = {
-                    'Name': name,
-                    'QueryString': query_string,
-                    'Database': database,
+                    "Name": name,
+                    "QueryString": query_string,
+                    "Database": database,
                 }
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 if client_request_token is not None:
-                    params['ClientRequestToken'] = client_request_token
+                    params["ClientRequestToken"] = client_request_token
 
                 # Create named query
                 response = self.athena_client.create_named_query(**params)
 
                 data = CreateNamedQueryData(
-                    named_query_id=response.get('NamedQueryId', ''),
-                    operation='create-named-query',
+                    named_query_id=response.get("NamedQueryId", ""),
+                    operation="create-named-query",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=f'Successfully created named query {name}'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(
+                            type="text", text=f"Successfully created named query {name}"
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'delete-named-query':
+            elif operation == "delete-named-query":
                 if named_query_id is None:
-                    raise ValueError('named_query_id is required for delete-named-query operation')
+                    raise ValueError(
+                        "named_query_id is required for delete-named-query operation"
+                    )
 
                 # Delete named query
                 self.athena_client.delete_named_query(NamedQueryId=named_query_id)
 
                 data = DeleteNamedQueryData(
                     named_query_id=named_query_id,
-                    operation='delete-named-query',
+                    operation="delete-named-query",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text', text=f'Successfully deleted named query {named_query_id}'
+                            type="text",
+                            text=f"Successfully deleted named query {named_query_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'get-named-query':
+            elif operation == "get-named-query":
                 if named_query_id is None:
-                    raise ValueError('named_query_id is required for get-named-query operation')
+                    raise ValueError(
+                        "named_query_id is required for get-named-query operation"
+                    )
 
                 # Get named query
-                response = self.athena_client.get_named_query(NamedQueryId=named_query_id)
+                response = self.athena_client.get_named_query(
+                    NamedQueryId=named_query_id
+                )
 
                 data = GetNamedQueryData(
                     named_query_id=named_query_id,
-                    named_query=response.get('NamedQuery', {}),
-                    operation='get-named-query',
+                    named_query=response.get("NamedQuery", {}),
+                    operation="get-named-query",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text',
-                            text=f'Successfully retrieved named query {named_query_id}',
+                            type="text",
+                            text=f"Successfully retrieved named query {named_query_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-named-queries':
+            elif operation == "list-named-queries":
                 # Prepare parameters
                 params: Dict[str, Any] = {}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # List named queries
                 response = self.athena_client.list_named_queries(**params)
 
-                named_query_ids_res = response.get('NamedQueryIds', [])
+                named_query_ids_res = response.get("NamedQueryIds", [])
                 data = ListNamedQueriesData(
                     named_query_ids=named_query_ids_res,
                     count=len(named_query_ids_res),
-                    next_token=response.get('NextToken'),
-                    operation='list-named-queries',
+                    next_token=response.get("NextToken"),
+                    operation="list-named-queries",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text='Successfully listed named queries'),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(
+                            type="text", text="Successfully listed named queries"
+                        ),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'update-named-query':
+            elif operation == "update-named-query":
                 if named_query_id is None:
-                    raise ValueError('named_query_id is required for update-named-query operation')
+                    raise ValueError(
+                        "named_query_id is required for update-named-query operation"
+                    )
 
                 # Prepare parameters
-                params = {'NamedQueryId': named_query_id}
+                params = {"NamedQueryId": named_query_id}
 
                 if name is not None:
-                    params['Name'] = name
+                    params["Name"] = name
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if database is not None:
-                    params['Database'] = database
+                    params["Database"] = database
 
                 if query_string is not None:
-                    params['QueryString'] = query_string
+                    params["QueryString"] = query_string
 
                 # Update named query
                 self.athena_client.update_named_query(**params)
 
                 data = UpdateNamedQueryData(
                     named_query_id=named_query_id,
-                    operation='update-named-query',
+                    operation="update-named-query",
                 )
 
                 return CallToolResult(
                     isError=False,
                     content=[
                         TextContent(
-                            type='text', text=f'Successfully updated named query {named_query_id}'
+                            type="text",
+                            text=f"Successfully updated named query {named_query_id}",
                         ),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
             else:
-                error_message = f'Invalid operation: {operation}. Must be one of: batch-get-named-query, create-named-query, delete-named-query, get-named-query, list-named-queries, update-named-query'
+                error_message = f"Invalid operation: {operation}. Must be one of: batch-get-named-query, create-named-query, delete-named-query, get-named-query, list-named-queries, update-named-query"
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
         except ValueError as e:
-            log_with_request_id(ctx, LogLevel.ERROR, f'Parameter validation error: {str(e)}')
+            log_with_request_id(
+                ctx, LogLevel.ERROR, f"Parameter validation error: {str(e)}"
+            )
             raise
         except Exception as e:
-            error_message = f'Error in manage_aws_athena_named_queries: {str(e)}'
+            error_message = f"Error in manage_aws_athena_named_queries: {str(e)}"
             log_with_request_id(ctx, LogLevel.ERROR, error_message)
             return CallToolResult(
                 isError=True,
-                content=[TextContent(type='text', text=error_message)],
+                content=[TextContent(type="text", text=error_message)],
             )

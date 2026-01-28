@@ -34,7 +34,9 @@ from typing import Annotated, Any, Dict, Optional
 class AthenaWorkGroupHandler:
     """Handler for Amazon Athena WorkGroup operations."""
 
-    def __init__(self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False):
+    def __init__(
+        self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False
+    ):
         """Initialize the Athena WorkGroup handler.
 
         Args:
@@ -45,10 +47,12 @@ class AthenaWorkGroupHandler:
         self.mcp = mcp
         self.allow_write = allow_write
         self.allow_sensitive_data_access = allow_sensitive_data_access
-        self.athena_client = AwsHelper.create_boto3_client('athena')
+        self.athena_client = AwsHelper.create_boto3_client("athena")
 
         # Register tools
-        self.mcp.tool(name='manage_aws_athena_workgroups')(self.manage_aws_athena_workgroups)
+        self.mcp.tool(name="manage_aws_athena_workgroups")(
+            self.manage_aws_athena_workgroups
+        )
 
     async def manage_aws_athena_workgroups(
         self,
@@ -56,31 +60,31 @@ class AthenaWorkGroupHandler:
         operation: Annotated[
             str,
             Field(
-                description='Operation to perform: create-work-group, delete-work-group, get-work-group, list-work-groups, update-work-group. Choose read-only operations when write access is disabled.',
+                description="Operation to perform: create-work-group, delete-work-group, get-work-group, list-work-groups, update-work-group. Choose read-only operations when write access is disabled.",
             ),
         ],
         name: Annotated[
             Optional[str],
             Field(
-                description='Name of the workgroup (required for create-work-group, delete-work-group, get-work-group, update-work-group).',
+                description="Name of the workgroup (required for create-work-group, delete-work-group, get-work-group, update-work-group).",
             ),
         ] = None,
         description: Annotated[
             Optional[str],
             Field(
-                description='Description of the workgroup (optional for create-work-group and update-work-group).',
+                description="Description of the workgroup (optional for create-work-group and update-work-group).",
             ),
         ] = None,
         configuration: Annotated[
             Optional[Dict[str, Any]],
             Field(
-                description='Configuration for the workgroup, including result configuration, enforcement options, etc. (optional for create-work-group and update-work-group).',
+                description="Configuration for the workgroup, including result configuration, enforcement options, etc. (optional for create-work-group and update-work-group).",
             ),
         ] = None,
         state: Annotated[
             Optional[str],
             Field(
-                description='State of the workgroup: ENABLED or DISABLED (optional for create-work-group and update-work-group).',
+                description="State of the workgroup: ENABLED or DISABLED (optional for create-work-group and update-work-group).",
             ),
         ] = None,
         tags: Annotated[
@@ -92,19 +96,19 @@ class AthenaWorkGroupHandler:
         recursive_delete_option: Annotated[
             Optional[bool],
             Field(
-                description='Whether to recursively delete the workgroup and its contents (optional for delete-work-group).',
+                description="Whether to recursively delete the workgroup and its contents (optional for delete-work-group).",
             ),
         ] = None,
         max_results: Annotated[
             Optional[int],
             Field(
-                description='Maximum number of results to return for list-work-groups operation.',
+                description="Maximum number of results to return for list-work-groups operation.",
             ),
         ] = None,
         next_token: Annotated[
             Optional[str],
             Field(
-                description='Pagination token for list-work-groups operation.',
+                description="Pagination token for list-work-groups operation.",
             ),
         ] = None,
     ) -> CallToolResult:
@@ -149,205 +153,212 @@ class AthenaWorkGroupHandler:
             log_with_request_id(
                 ctx,
                 LogLevel.INFO,
-                f'Athena workgroup Handler - Tool: manage_aws_athena_workgroups - Operation: {operation}',
+                f"Athena workgroup Handler - Tool: manage_aws_athena_workgroups - Operation: {operation}",
             )
 
             if not self.allow_write and operation in [
-                'create-work-group',
-                'delete-work-group',
-                'update-work-group',
+                "create-work-group",
+                "delete-work-group",
+                "update-work-group",
             ]:
-                error_message = f'Operation {operation} is not allowed without write access'
+                error_message = (
+                    f"Operation {operation} is not allowed without write access"
+                )
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
 
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
-            if operation == 'create-work-group':
+            if operation == "create-work-group":
                 if name is None:
-                    raise ValueError('name is required for create-work-group operation')
+                    raise ValueError("name is required for create-work-group operation")
 
                 # Prepare parameters
-                params = {'Name': name}
+                params = {"Name": name}
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if configuration is not None:
-                    params['Configuration'] = configuration
+                    params["Configuration"] = configuration
 
                 if state is not None:
-                    params['State'] = state
+                    params["State"] = state
 
                 # Add MCP management tags
-                resource_tags = AwsHelper.prepare_resource_tags('AthenaWorkgroup', tags)
+                resource_tags = AwsHelper.prepare_resource_tags("AthenaWorkgroup", tags)
                 aws_tags = AwsHelper.convert_tags_to_aws_format(resource_tags)
-                params['Tags'] = aws_tags
+                params["Tags"] = aws_tags
 
                 # Create workgroup
                 self.athena_client.create_work_group(**params)
 
-                success_message = (
-                    f'Successfully created Athena workgroup {name} with MCP management tags'
-                )
+                success_message = f"Successfully created Athena workgroup {name} with MCP management tags"
                 data = CreateWorkGroupData(
                     work_group_name=name,
-                    operation='create-work-group',
+                    operation="create-work-group",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'delete-work-group':
+            elif operation == "delete-work-group":
                 if name is None:
-                    raise ValueError('name is required for delete-work-group operation')
+                    raise ValueError("name is required for delete-work-group operation")
 
                 # Verify that the workgroup is managed by MCP before deleting
                 workgroup_tags = AwsHelper.get_resource_tags_athena_workgroup(
                     self.athena_client, name
                 )
                 if not AwsHelper.verify_resource_managed_by_mcp(workgroup_tags):
-                    error_message = f'Cannot delete workgroup {name} - it is not managed by the MCP server (missing required tags)'
+                    error_message = f"Cannot delete workgroup {name} - it is not managed by the MCP server (missing required tags)"
                     log_with_request_id(ctx, LogLevel.ERROR, error_message)
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=error_message)],
+                        content=[TextContent(type="text", text=error_message)],
                     )
 
                 # Prepare parameters
-                params = {'WorkGroup': name}
+                params = {"WorkGroup": name}
 
                 if recursive_delete_option is not None:
-                    params['RecursiveDeleteOption'] = recursive_delete_option
+                    params["RecursiveDeleteOption"] = recursive_delete_option
 
                 # Delete workgroup
                 self.athena_client.delete_work_group(**params)
 
-                success_message = f'Successfully deleted MCP-managed Athena workgroup {name}'
+                success_message = (
+                    f"Successfully deleted MCP-managed Athena workgroup {name}"
+                )
                 data = DeleteWorkGroupData(
                     work_group_name=name,
-                    operation='delete-work-group',
+                    operation="delete-work-group",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'get-work-group':
+            elif operation == "get-work-group":
                 if name is None:
-                    raise ValueError('name is required for get-work-group operation')
+                    raise ValueError("name is required for get-work-group operation")
 
                 # Get workgroup
                 response = self.athena_client.get_work_group(WorkGroup=name)
 
-                success_message = f'Successfully retrieved workgroup {name}'
+                success_message = f"Successfully retrieved workgroup {name}"
                 data = GetWorkGroupData(
-                    work_group=response.get('WorkGroup', {}),
-                    operation='get-work-group',
+                    work_group=response.get("WorkGroup", {}),
+                    operation="get-work-group",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-work-groups':
+            elif operation == "list-work-groups":
                 # Prepare parameters
                 params: Dict[str, Any] = {}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
 
                 # List workgroups
                 response = self.athena_client.list_work_groups(**params)
 
-                work_groups = response.get('WorkGroups', [])
-                success_message = 'Successfully listed workgroups'
+                # Serialize boto3 response to handle datetime/Decimal types
+                work_groups = AwsHelper.serialize_boto3_response(
+                    response.get("WorkGroups", [])
+                )
+                success_message = "Successfully listed workgroups"
                 data = ListWorkGroupsData(
                     work_groups=work_groups,
                     count=len(work_groups),
-                    next_token=response.get('NextToken'),
-                    operation='list-work-groups',
+                    next_token=response.get("NextToken"),
+                    operation="list-work-groups",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'update-work-group':
+            elif operation == "update-work-group":
                 if name is None:
-                    raise ValueError('name is required for update-work-group operation')
+                    raise ValueError("name is required for update-work-group operation")
 
                 # Verify that the workgroup is managed by MCP before deleting
                 workgroup_tags = AwsHelper.get_resource_tags_athena_workgroup(
                     self.athena_client, name
                 )
                 if not AwsHelper.verify_resource_managed_by_mcp(workgroup_tags):
-                    error_message = f'Cannot update workgroup {name} - it is not managed by the MCP server (missing required tags)'
+                    error_message = f"Cannot update workgroup {name} - it is not managed by the MCP server (missing required tags)"
                     log_with_request_id(ctx, LogLevel.ERROR, error_message)
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=error_message)],
+                        content=[TextContent(type="text", text=error_message)],
                     )
 
                 # Prepare parameters
-                params = {'WorkGroup': name}
+                params = {"WorkGroup": name}
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if configuration is not None:
-                    params['ConfigurationUpdates'] = configuration
+                    params["ConfigurationUpdates"] = configuration
 
                 if state is not None:
-                    params['State'] = state
+                    params["State"] = state
 
                 # Update workgroup
                 self.athena_client.update_work_group(**params)
 
-                success_message = f'Successfully updated workgroup {name}'
+                success_message = f"Successfully updated workgroup {name}"
                 data = UpdateWorkGroupData(
                     work_group_name=name,
-                    operation='update-work-group',
+                    operation="update-work-group",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
             else:
-                error_message = f'Invalid operation: {operation}. Must be one of: create-work-group, delete-work-group, get-work-group, list-work-groups, update-work-group'
+                error_message = f"Invalid operation: {operation}. Must be one of: create-work-group, delete-work-group, get-work-group, list-work-groups, update-work-group"
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
         except ValueError as e:
-            log_with_request_id(ctx, LogLevel.ERROR, f'Parameter validation error: {str(e)}')
+            log_with_request_id(
+                ctx, LogLevel.ERROR, f"Parameter validation error: {str(e)}"
+            )
             raise
         except Exception as e:
-            error_message = f'Error in manage_aws_athena_workgroups: {str(e)}'
+            error_message = f"Error in manage_aws_athena_workgroups: {str(e)}"
             log_with_request_id(ctx, LogLevel.ERROR, error_message)
             return CallToolResult(
                 isError=True,
-                content=[TextContent(type='text', text=error_message)],
+                content=[TextContent(type="text", text=error_message)],
             )

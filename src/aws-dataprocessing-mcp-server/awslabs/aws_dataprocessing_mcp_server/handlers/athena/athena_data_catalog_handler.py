@@ -40,7 +40,9 @@ from typing import Annotated, Any, Dict, Optional
 class AthenaDataCatalogHandler:
     """Handler for Amazon Athena Data Catalog operations."""
 
-    def __init__(self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False):
+    def __init__(
+        self, mcp, allow_write: bool = False, allow_sensitive_data_access: bool = False
+    ):
         """Initialize the Athena Data Catalog handler.
 
         Args:
@@ -51,11 +53,13 @@ class AthenaDataCatalogHandler:
         self.mcp = mcp
         self.allow_write = allow_write
         self.allow_sensitive_data_access = allow_sensitive_data_access
-        self.athena_client = AwsHelper.create_boto3_client('athena')
+        self.athena_client = AwsHelper.create_boto3_client("athena")
 
         # Register tools
-        self.mcp.tool(name='manage_aws_athena_data_catalogs')(self.manage_aws_athena_data_catalogs)
-        self.mcp.tool(name='manage_aws_athena_databases_and_tables')(
+        self.mcp.tool(name="manage_aws_athena_data_catalogs")(
+            self.manage_aws_athena_data_catalogs
+        )
+        self.mcp.tool(name="manage_aws_athena_databases_and_tables")(
             self.manage_aws_athena_databases_and_tables
         )
 
@@ -65,25 +69,25 @@ class AthenaDataCatalogHandler:
         operation: Annotated[
             str,
             Field(
-                description='Operation to perform: create-data-catalog, delete-data-catalog, get-data-catalog, list-data-catalogs, update-data-catalog. Choose read-only operations when write access is disabled.',
+                description="Operation to perform: create-data-catalog, delete-data-catalog, get-data-catalog, list-data-catalogs, update-data-catalog. Choose read-only operations when write access is disabled.",
             ),
         ],
         name: Annotated[
             Optional[str],
             Field(
-                description='Name of the data catalog (required for create-data-catalog, delete-data-catalog, get-data-catalog, update-data-catalog). The catalog name must be unique for the AWS account and can use a maximum of 127 alphanumeric, underscore, at sign, or hyphen characters.',
+                description="Name of the data catalog (required for create-data-catalog, delete-data-catalog, get-data-catalog, update-data-catalog). The catalog name must be unique for the AWS account and can use a maximum of 127 alphanumeric, underscore, at sign, or hyphen characters.",
             ),
         ] = None,
         type: Annotated[
             Optional[str],
             Field(
-                description='Type of the data catalog (required for create-data-catalog and update-data-catalog). Valid values: LAMBDA, GLUE, HIVE, FEDERATED.',
+                description="Type of the data catalog (required for create-data-catalog and update-data-catalog). Valid values: LAMBDA, GLUE, HIVE, FEDERATED.",
             ),
         ] = None,
         description: Annotated[
             Optional[str],
             Field(
-                description='Description of the data catalog (optional for create-data-catalog and update-data-catalog).',
+                description="Description of the data catalog (optional for create-data-catalog and update-data-catalog).",
             ),
         ] = None,
         parameters: Annotated[
@@ -95,31 +99,31 @@ class AthenaDataCatalogHandler:
         tags: Annotated[
             Optional[Dict[str, str]],
             Field(
-                description='Tags for the data catalog (optional for create-data-catalog).',
+                description="Tags for the data catalog (optional for create-data-catalog).",
             ),
         ] = None,
         max_results: Annotated[
             Optional[int],
             Field(
-                description='Maximum number of results to return for list-data-catalogs operation (range: 2-50).',
+                description="Maximum number of results to return for list-data-catalogs operation (range: 2-50).",
             ),
         ] = None,
         next_token: Annotated[
             Optional[str],
             Field(
-                description='Pagination token for list-data-catalogs operation.',
+                description="Pagination token for list-data-catalogs operation.",
             ),
         ] = None,
         work_group: Annotated[
             Optional[str],
             Field(
-                description='The name of the workgroup (required if making an IAM Identity Center request).',
+                description="The name of the workgroup (required if making an IAM Identity Center request).",
             ),
         ] = None,
         delete_catalog_only: Annotated[
             Optional[bool],
             Field(
-                description='For delete-data-catalog operation, whether to delete only the Athena Data Catalog (true) or also its resources (false). Only applicable for FEDERATED catalogs.',
+                description="For delete-data-catalog operation, whether to delete only the Athena Data Catalog (true) or also its resources (false). Only applicable for FEDERATED catalogs.",
             ),
         ] = None,
     ) -> CallToolResult:
@@ -179,212 +183,233 @@ class AthenaDataCatalogHandler:
         """
         try:
             if not self.allow_write and operation in [
-                'create-data-catalog',
-                'delete-data-catalog',
-                'update-data-catalog',
+                "create-data-catalog",
+                "delete-data-catalog",
+                "update-data-catalog",
             ]:
-                error_message = f'Operation {operation} is not allowed without write access'
+                error_message = (
+                    f"Operation {operation} is not allowed without write access"
+                )
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
                     content=[
-                        TextContent(type='text', text=error_message),
+                        TextContent(type="text", text=error_message),
                     ],
                 )
 
-            if operation == 'create-data-catalog':
+            if operation == "create-data-catalog":
                 if name is None or type is None:
                     raise ValueError(
-                        'name and type are required for create-data-catalog operation'
+                        "name and type are required for create-data-catalog operation"
                     )
 
                 # Prepare parameters
                 params = {
-                    'Name': name,
-                    'Type': type,
+                    "Name": name,
+                    "Type": type,
                 }
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if parameters is not None:
-                    params['Parameters'] = parameters
+                    params["Parameters"] = parameters
 
                 # Add MCP management tags
-                resource_tags = AwsHelper.prepare_resource_tags('AthenaDataCatalog', tags)
+                resource_tags = AwsHelper.prepare_resource_tags(
+                    "AthenaDataCatalog", tags
+                )
                 aws_tags = AwsHelper.convert_tags_to_aws_format(resource_tags)
-                params['Tags'] = aws_tags
+                params["Tags"] = aws_tags
 
                 # Create data catalog
                 self.athena_client.create_data_catalog(**params)
 
-                success_message = f'Successfully created data catalog {name}'
-                data = CreateDataCatalogData(name=name, operation='create-data-catalog')
+                success_message = f"Successfully created data catalog {name}"
+                data = CreateDataCatalogData(name=name, operation="create-data-catalog")
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'delete-data-catalog':
+            elif operation == "delete-data-catalog":
                 if name is None:
-                    raise ValueError('name is required for delete-data-catalog operation')
+                    raise ValueError(
+                        "name is required for delete-data-catalog operation"
+                    )
 
                 # Verify that the data catalog is managed by MCP
-                verification_result = AwsHelper.verify_athena_data_catalog_managed_by_mcp(
-                    self.athena_client, name, work_group
+                verification_result = (
+                    AwsHelper.verify_athena_data_catalog_managed_by_mcp(
+                        self.athena_client, name, work_group
+                    )
                 )
 
-                if not verification_result['is_valid']:
-                    error_message = verification_result['error_message']
+                if not verification_result["is_valid"]:
+                    error_message = verification_result["error_message"]
                     log_with_request_id(ctx, LogLevel.ERROR, error_message)
-                    full_error_message = f'Cannot delete data catalog {name}: {error_message}'
+                    full_error_message = (
+                        f"Cannot delete data catalog {name}: {error_message}"
+                    )
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=full_error_message)],
+                        content=[TextContent(type="text", text=full_error_message)],
                     )
 
                 # Prepare parameters for deletion
-                params = {'Name': name}
+                params = {"Name": name}
                 if delete_catalog_only is not None:
-                    params['DeleteCatalogOnly'] = str(delete_catalog_only).lower()
+                    params["DeleteCatalogOnly"] = str(delete_catalog_only).lower()
 
                 # Delete data catalog
                 response = self.athena_client.delete_data_catalog(**params)
-                status = response.get('DataCatalog', {}).get('Status', '')
-                data = DeleteDataCatalogData(name=name, operation='delete-data-catalog')
-                if status == 'DELETE_FAILED':
-                    error_message = 'Data Catalog delete operation failed'
+                status = response.get("DataCatalog", {}).get("Status", "")
+                data = DeleteDataCatalogData(name=name, operation="delete-data-catalog")
+                if status == "DELETE_FAILED":
+                    error_message = "Data Catalog delete operation failed"
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=error_message)],
+                        content=[TextContent(type="text", text=error_message)],
                     )
                 else:
-                    success_message = f'Successfully deleted data catalog {name}'
+                    success_message = f"Successfully deleted data catalog {name}"
                     return CallToolResult(
                         isError=False,
                         content=[
-                            TextContent(type='text', text=success_message),
-                            TextContent(type='text', text=json.dumps(data.model_dump())),
+                            TextContent(type="text", text=success_message),
+                            TextContent(
+                                type="text", text=json.dumps(data.model_dump())
+                            ),
                         ],
                     )
 
-            elif operation == 'get-data-catalog':
+            elif operation == "get-data-catalog":
                 if name is None:
-                    raise ValueError('name is required for get-data-catalog operation')
+                    raise ValueError("name is required for get-data-catalog operation")
 
                 # Prepare parameters
-                params = {'Name': name}
+                params = {"Name": name}
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # Get data catalog
                 response = self.athena_client.get_data_catalog(**params)
 
-                success_message = f'Successfully retrieved data catalog {name}'
+                success_message = f"Successfully retrieved data catalog {name}"
                 data = GetDataCatalogData(
-                    data_catalog=response.get('DataCatalog', {}), operation='get-data-catalog'
+                    data_catalog=response.get("DataCatalog", {}),
+                    operation="get-data-catalog",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-data-catalogs':
+            elif operation == "list-data-catalogs":
                 # Prepare parameters
                 params: Dict[str, Any] = {}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # List data catalogs
                 response = self.athena_client.list_data_catalogs(**params)
 
-                data_catalogs = response.get('DataCatalogsSummary', [])
-                success_message = 'Successfully listed data catalogs'
+                data_catalogs = response.get("DataCatalogsSummary", [])
+                success_message = "Successfully listed data catalogs"
                 data = ListDataCatalogsData(
                     data_catalogs=data_catalogs,
                     count=len(data_catalogs),
-                    next_token=response.get('NextToken'),
-                    operation='list-data-catalogs',
+                    next_token=response.get("NextToken"),
+                    operation="list-data-catalogs",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'update-data-catalog':
+            elif operation == "update-data-catalog":
                 if name is None:
-                    raise ValueError('name is required for update-data-catalog operation')
+                    raise ValueError(
+                        "name is required for update-data-catalog operation"
+                    )
 
                 # Verify that the data catalog is managed by MCP
-                verification_result = AwsHelper.verify_athena_data_catalog_managed_by_mcp(
-                    self.athena_client, name, work_group
+                verification_result = (
+                    AwsHelper.verify_athena_data_catalog_managed_by_mcp(
+                        self.athena_client, name, work_group
+                    )
                 )
 
-                if not verification_result['is_valid']:
-                    error_message = verification_result['error_message']
+                if not verification_result["is_valid"]:
+                    error_message = verification_result["error_message"]
                     log_with_request_id(ctx, LogLevel.ERROR, error_message)
-                    full_error_message = f'Cannot update data catalog {name}: {error_message}'
+                    full_error_message = (
+                        f"Cannot update data catalog {name}: {error_message}"
+                    )
                     return CallToolResult(
                         isError=True,
-                        content=[TextContent(type='text', text=full_error_message)],
+                        content=[TextContent(type="text", text=full_error_message)],
                     )
 
                 # Prepare parameters for update
-                params = {'Name': name}
+                params = {"Name": name}
 
                 if type is not None:
-                    params['Type'] = type
+                    params["Type"] = type
 
                 if description is not None:
-                    params['Description'] = description
+                    params["Description"] = description
 
                 if parameters is not None:
-                    params['Parameters'] = parameters
+                    params["Parameters"] = parameters
 
                 # Update data catalog
                 self.athena_client.update_data_catalog(**params)
 
-                success_message = f'Successfully updated data catalog {name}'
-                data = UpdateDataCatalogData(name=name, operation='update-data-catalog')
+                success_message = f"Successfully updated data catalog {name}"
+                data = UpdateDataCatalogData(name=name, operation="update-data-catalog")
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
             else:
-                error_message = f'Invalid operation: {operation}. Must be one of: create-data-catalog, delete-data-catalog, get-data-catalog, list-data-catalogs, update-data-catalog'
+                error_message = f"Invalid operation: {operation}. Must be one of: create-data-catalog, delete-data-catalog, get-data-catalog, list-data-catalogs, update-data-catalog"
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
         except ValueError as e:
-            log_with_request_id(ctx, LogLevel.ERROR, f'Parameter validation error: {str(e)}')
+            log_with_request_id(
+                ctx, LogLevel.ERROR, f"Parameter validation error: {str(e)}"
+            )
             raise
         except Exception as e:
-            error_message = f'Error in manage_aws_athena_data_catalogs: {str(e)}'
+            error_message = f"Error in manage_aws_athena_data_catalogs: {str(e)}"
             log_with_request_id(ctx, LogLevel.ERROR, error_message)
             return CallToolResult(
                 isError=True,
                 content=[
-                    TextContent(type='text', text=error_message),
+                    TextContent(type="text", text=error_message),
                 ],
             )
 
@@ -394,49 +419,49 @@ class AthenaDataCatalogHandler:
         operation: Annotated[
             str,
             Field(
-                description='Operation to perform: get-database, get-table-metadata, list-databases, list-table-metadata. These are read-only operations.',
+                description="Operation to perform: get-database, get-table-metadata, list-databases, list-table-metadata. These are read-only operations.",
             ),
         ],
         catalog_name: Annotated[
             str,
             Field(
-                description='Name of the data catalog.',
+                description="Name of the data catalog.",
             ),
         ],
         database_name: Annotated[
             Optional[str],
             Field(
-                description='Name of the database (required for get-database, get-table-metadata, list-table-metadata).',
+                description="Name of the database (required for get-database, get-table-metadata, list-table-metadata).",
             ),
         ] = None,
         table_name: Annotated[
             Optional[str],
             Field(
-                description='Name of the table (required for get-table-metadata).',
+                description="Name of the table (required for get-table-metadata).",
             ),
         ] = None,
         expression: Annotated[
             Optional[str],
             Field(
-                description='Expression to filter tables (optional for list-table-metadata). A regex pattern that pattern-matches table names.',
+                description="Expression to filter tables (optional for list-table-metadata). A regex pattern that pattern-matches table names.",
             ),
         ] = None,
         max_results: Annotated[
             Optional[int],
             Field(
-                description='Maximum number of results to return for list-databases (range: 1-50) and list-table-metadata (range: 1-50) operations.',
+                description="Maximum number of results to return for list-databases (range: 1-50) and list-table-metadata (range: 1-50) operations.",
             ),
         ] = None,
         next_token: Annotated[
             Optional[str],
             Field(
-                description='Pagination token for list-databases and list-table-metadata operations.',
+                description="Pagination token for list-databases and list-table-metadata operations.",
             ),
         ] = None,
         work_group: Annotated[
             Optional[str],
             Field(
-                description='The name of the workgroup (required if making an IAM Identity Center request).',
+                description="The name of the workgroup (required if making an IAM Identity Center request).",
             ),
         ] = None,
     ) -> CallToolResult:
@@ -488,147 +513,156 @@ class AthenaDataCatalogHandler:
             Union of response types specific to the operation performed
         """
         try:
-            if operation == 'get-database':
+            if operation == "get-database":
                 if database_name is None:
-                    raise ValueError('database_name is required for get-database operation')
-
-                # Prepare parameters
-                params = {
-                    'CatalogName': catalog_name,
-                    'DatabaseName': database_name,
-                }
-                if work_group is not None:
-                    params['WorkGroup'] = work_group
-
-                # Get database
-                response = self.athena_client.get_database(**params)
-
-                success_message = (
-                    f'Successfully retrieved database {database_name} from catalog {catalog_name}'
-                )
-                data = GetDatabaseData(
-                    database=response.get('Database', {}), operation='get-database'
-                )
-                return CallToolResult(
-                    isError=False,
-                    content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
-                    ],
-                )
-
-            elif operation == 'get-table-metadata':
-                if database_name is None or table_name is None:
                     raise ValueError(
-                        'database_name and table_name are required for get-table-metadata operation'
+                        "database_name is required for get-database operation"
                     )
 
                 # Prepare parameters
                 params = {
-                    'CatalogName': catalog_name,
-                    'DatabaseName': database_name,
-                    'TableName': table_name,
+                    "CatalogName": catalog_name,
+                    "DatabaseName": database_name,
                 }
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
+
+                # Get database
+                response = self.athena_client.get_database(**params)
+
+                success_message = f"Successfully retrieved database {database_name} from catalog {catalog_name}"
+                data = GetDatabaseData(
+                    database=response.get("Database", {}), operation="get-database"
+                )
+                return CallToolResult(
+                    isError=False,
+                    content=[
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
+                    ],
+                )
+
+            elif operation == "get-table-metadata":
+                if database_name is None or table_name is None:
+                    raise ValueError(
+                        "database_name and table_name are required for get-table-metadata operation"
+                    )
+
+                # Prepare parameters
+                params = {
+                    "CatalogName": catalog_name,
+                    "DatabaseName": database_name,
+                    "TableName": table_name,
+                }
+                if work_group is not None:
+                    params["WorkGroup"] = work_group
 
                 # Get table metadata
                 response = self.athena_client.get_table_metadata(**params)
 
-                success_message = f'Successfully retrieved metadata for table {table_name} in database {database_name} from catalog {catalog_name}'
+                success_message = f"Successfully retrieved metadata for table {table_name} in database {database_name} from catalog {catalog_name}"
                 data = GetTableMetadataData(
-                    table_metadata=response.get('TableMetadata', {}),
-                    operation='get-table-metadata',
+                    table_metadata=response.get("TableMetadata", {}),
+                    operation="get-table-metadata",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-databases':
+            elif operation == "list-databases":
                 # Prepare parameters
-                params: Dict[str, Any] = {'CatalogName': catalog_name}
+                params: Dict[str, Any] = {"CatalogName": catalog_name}
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # List databases
                 response = self.athena_client.list_databases(**params)
 
-                database_list = response.get('DatabaseList', [])
-                success_message = f'Successfully listed databases in catalog {catalog_name}'
+                database_list = response.get("DatabaseList", [])
+                success_message = (
+                    f"Successfully listed databases in catalog {catalog_name}"
+                )
                 data = ListDatabasesData(
                     database_list=database_list,
                     count=len(database_list),
-                    next_token=response.get('NextToken'),
-                    operation='list-databases',
+                    next_token=response.get("NextToken"),
+                    operation="list-databases",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
-            elif operation == 'list-table-metadata':
+            elif operation == "list-table-metadata":
                 if database_name is None:
-                    raise ValueError('database_name is required for list-table-metadata operation')
+                    raise ValueError(
+                        "database_name is required for list-table-metadata operation"
+                    )
 
                 # Prepare parameters
                 params: Dict[str, Any] = {
-                    'CatalogName': catalog_name,
-                    'DatabaseName': database_name,
+                    "CatalogName": catalog_name,
+                    "DatabaseName": database_name,
                 }
                 if expression is not None:
-                    params['Expression'] = expression
+                    params["Expression"] = expression
                 if max_results is not None:
-                    params['MaxResults'] = max_results
+                    params["MaxResults"] = max_results
                 if next_token is not None:
-                    params['NextToken'] = next_token
+                    params["NextToken"] = next_token
                 if work_group is not None:
-                    params['WorkGroup'] = work_group
+                    params["WorkGroup"] = work_group
 
                 # List table metadata
                 response = self.athena_client.list_table_metadata(**params)
 
-                table_metadata_list = response.get('TableMetadataList', [])
-                success_message = f'Successfully listed table metadata in database {database_name} from catalog {catalog_name}'
+                # Serialize boto3 response to handle datetime/Decimal types
+                table_metadata_list = AwsHelper.serialize_boto3_response(
+                    response.get("TableMetadataList", [])
+                )
+                success_message = f"Successfully listed table metadata in database {database_name} from catalog {catalog_name}"
                 data = ListTableMetadataData(
                     table_metadata_list=table_metadata_list,
                     count=len(table_metadata_list),
-                    next_token=response.get('NextToken'),
-                    operation='list-table-metadata',
+                    next_token=response.get("NextToken"),
+                    operation="list-table-metadata",
                 )
                 return CallToolResult(
                     isError=False,
                     content=[
-                        TextContent(type='text', text=success_message),
-                        TextContent(type='text', text=json.dumps(data.model_dump())),
+                        TextContent(type="text", text=success_message),
+                        TextContent(type="text", text=json.dumps(data.model_dump())),
                     ],
                 )
 
             else:
-                error_message = f'Invalid operation: {operation}. Must be one of: get-database, get-table-metadata, list-databases, list-table-metadata'
+                error_message = f"Invalid operation: {operation}. Must be one of: get-database, get-table-metadata, list-databases, list-table-metadata"
                 log_with_request_id(ctx, LogLevel.ERROR, error_message)
                 return CallToolResult(
                     isError=True,
-                    content=[TextContent(type='text', text=error_message)],
+                    content=[TextContent(type="text", text=error_message)],
                 )
 
         except ValueError as e:
-            log_with_request_id(ctx, LogLevel.ERROR, f'Parameter validation error: {str(e)}')
+            log_with_request_id(
+                ctx, LogLevel.ERROR, f"Parameter validation error: {str(e)}"
+            )
             raise
         except Exception as e:
-            error_message = f'Error in manage_aws_athena_databases_and_tables: {str(e)}'
+            error_message = f"Error in manage_aws_athena_databases_and_tables: {str(e)}"
             log_with_request_id(ctx, LogLevel.ERROR, error_message)
             return CallToolResult(
                 isError=True,
-                content=[TextContent(type='text', text=error_message)],
+                content=[TextContent(type="text", text=error_message)],
             )
